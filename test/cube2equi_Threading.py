@@ -1,6 +1,7 @@
 from PIL import Image
-from cube2equi import find_corresponding_pixel
+from src.cube2equi import find_corresponding_pixel
 
+import threading
 
 def convert_img(infile, outfile):
 
@@ -24,11 +25,23 @@ def convert_img(infile, outfile):
 
             outimg.putpixel((xcoord, ycoord), inimg.getpixel((corrx, corry)))
         # Print progress percentage
-        # print str(round((float(ycoord)/float(h))*100, 2)) + '%'
+        percent = round((float(ycoord)/float(h))*100, 2)
+        if (percent % 10) == 0 :
+        	print percent
 
 
     outimg.save(outfile, 'PNG')
+    print ("save image : " + outfile)
 
 input_path = "C:/Users/siras/Desktop/test_playblast/result.jpg"
-outputPath = "C:/Users/siras/Desktop/test_playblast/result_o.jpg"
-convert_img(input_path, outputPath)
+outputPath = [	"C:/Users/siras/Desktop/test_playblast/result_o.jpg",
+				"C:/Users/siras/Desktop/test_playblast/result_o2.jpg",
+				"C:/Users/siras/Desktop/test_playblast/result_o3.jpg"]
+
+thread = []				
+for img in outputPath : 
+
+	t = threading.Thread( target = convert_img, args = (input_path, img))
+	# convert_img(infile = input_path, outfile = outputPath)
+	thread.append(t)
+	t.start()

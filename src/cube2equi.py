@@ -29,7 +29,16 @@ import math
 
 
 def spherical_coordinates(i, j, w, h):
-    """ Returns spherical coordinates of the pixel from the output image. """
+    """ 
+    Returns spherical coordinates of the pixel from the output image. 
+
+    :param i: X coordinate of output image pixel
+    :param j: Y coordinate of output image pixel
+    :param w: Width of output image
+    :param h: Height of output image
+
+    :return : phi, theta
+    """
     theta = 2*float(i)/float(w)-1
     phi = 2*float(j)/float(h)-1
     # phi = lat, theta = long
