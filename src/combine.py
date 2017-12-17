@@ -14,34 +14,14 @@ import os
 
 from PIL import Image
 
-'''
-files = [
-	'~/Downloads/1.jpg',
-	'~/Downloads/2.jpg',
-	'~/Downloads/3.jpg',
-	'~/Downloads/4.jpg']
-'''
-
 def combineToCube( front, back, left, right, up, down, outputPath, outputScale = (3840,2880) ):
 
 	if len(imageList) != 6 :
 		return False
 
 	result = Image.new("RGB", outputScale)
-	'''
-	for index, file in enumerate(files):
-		path = os.path.expanduser(file)
-		img = Image.open(path)
-		img.thumbnail((400, 400), Image.ANTIALIAS)
-		x = index // 2 * 400
-		y = index % 2 * 400
-		w, h = img.size
-		print('pos {0},{1} size {2},{3}'.format(x, y, w, h))
-		result.paste(img, (x, y, x + w, y + h))
-	'''
+
 	# Define conner
-	# center line
-	# h_Line = (outputScale[1] // 3 ) + ((outputScale[1] / 3 ) // 2 )
 	v_Line = (outputScale[0] / 4 )
 
 	# past center line

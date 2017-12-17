@@ -1,12 +1,14 @@
-#!D:/Program Files/Autodesk/Maya2016/bin/mayapy.exe
-# TestMayaIImage.py
+# maya360_core.py
 
 import os,sys
 
 from src.cube2equi import find_corresponding_pixel
 
-import maya.standalone
-maya.standalone.initialize(name='python')
+## For maya standalone ============
+# import maya.standalone
+# maya.standalone.initialize(name='python')
+## ================================
+
 import maya.cmds as cmds
 import maya.OpenMaya as om 
 
@@ -171,7 +173,7 @@ def createSpherical( left, front, right, back, top, bottom, in_widht, in_height,
 		if not os.path.exists(imageFile):
 			break
 
-		print ("\t-" + imageFile)
+		print ("\t- " + imageFile)
 
 		# Set Offset
 		if index   == 0:
@@ -210,18 +212,15 @@ def createSpherical( left, front, right, back, top, bottom, in_widht, in_height,
 
 		for y in range (0,img.height()) :
 
-			# print ("Row : %d")%y
-
 			for x in range(0,img.width()) :
 				r,g,b,a = img.getPixel(x,y)
 
 				cube_img.setPixel( x = x + x_offset, y = y + y_offset, color = [r,g,b])
 
-	cube_img.saveToFile(path = "C:/Users/siras/Desktop/test_playblast/outPut_API.jpg" )
-
-	# return
+	# cube_img.saveToFile(path = "C:/Users/siras/Desktop/test_playblast/outPut_API.jpg" )
 
 	# 2). Create Spherical
+	print ("Convert to equirectangular map :")
 	o_img = MayaImage()
 
 	out_widht  = in_widht  * 4
@@ -235,14 +234,13 @@ def createSpherical( left, front, right, back, top, bottom, in_widht, in_height,
 	w = in_widht *2
 	n = in_widht
 
+	# Create equirectangular map
 	o_img.create(w = w, h = h)
 
+	# Mapping Cube map to equirectangular map
 	for y in range (0,h) :
 
-		# print ("Row : %d")%y
-
 		for x in range(0,w) :
-			
 
 			corrx, corry = find_corresponding_pixel(i = x, j = y, 
 													w = w, h = h, 
@@ -250,17 +248,14 @@ def createSpherical( left, front, right, back, top, bottom, in_widht, in_height,
 
 			r,g,b,a = cube_img.getPixel(int(corrx),int(corry))
 
-			# print ("(%d,%d) >> (%d,%d)")%(x, y ,corrx ,corry)
-
 			o_img.setPixel( x = x, y = y, color = [r,g,b])
-
-			# print((corrx, corry))
 
 		percent = round((float(y)/float(h))*100, 2)
 		if percent % 1 == 0 :
 			print ("Percent : %.2f/100"%(percent))
 			o_img.saveToFile(path = output_path )
 
+	print ("Percent : 100.00/100")
 	o_img.saveToFile(path = output_path )
 
 if __name__ == '__main__':
