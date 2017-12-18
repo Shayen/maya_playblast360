@@ -1,16 +1,13 @@
 import sys, os
 import maya.cmds as cmds
 
-# Import modules
-try:
-	from src import combine
-except ImportError :
-	modulePath = os.path.dirname(__file__)
-	print modulePath
-	sys.path.append(modulePath)
-	sys.path.append("C:\Python27\Lib\site-packages")
+modulepath = os.path.dirname(__file__)
+if modulepath not in sys.path :
+	sys.path.append(modulepath)
 
-	from src import combine
+# Import modules
+import maya360_core as core
+reload(core)
 
 mainUI_name  = "SALMayaPlayblast360"
 mainUI_title = "SAL Maya Playblast 360"
@@ -20,12 +17,12 @@ def _createCamera(*args):
 
 	cameraRig = cmds.camera( n = "sphericalCamera" )
 
-	cam_left  = cmds.camera( n = "camera_left" )
+	cam_left  = cmds.camera( n = "cam_left"  , rotation = [0,90,0])
 	cam_front = cmds.camera( n = "cam_front" )
-	cam_right = cmds.camera( n = "cam_right" )
-	cam_back  = cmds.camera( n = "cam_back" )
-	cam_up    = cmds.camera( n = "cam_up" )
-	cam_down  = cmds.camera( n = "cam_down" )
+	cam_right = cmds.camera( n = "cam_right" , rotation = [0,-90,0])
+	cam_back  = cmds.camera( n = "cam_back"  , rotation = [0,180,0])
+	cam_up    = cmds.camera( n = "cam_up"    , rotation = [90,0,0])
+	cam_down  = cmds.camera( n = "cam_down"  , rotation = [-90,0,0])
 
 	# Setup each camera
 	for camera, cameraShape in [cam_left, cam_front, cam_right, cam_back, cam_up, cam_down]:
@@ -48,10 +45,100 @@ def _createCamera(*args):
 def _renderVR(*args):
 	'''Render playblast to vr'''
 
-	currentPath = cmds.textField("destDir_textField", q=True, tx = currentPath)
+	# Query data
+	destPath 	= cmds.textField( "destDir_textField"	, q=True, tx = True )
+	filename 	= cmds.textField("playblastName_textField", q=True, tx=True)
+	startFrame 	= cmds.intField ( "startFrame_intField"	, q=True, v  = True )
+	endFrame 	= cmds.intField ( "endFrame_intField"	, q=True, v  = True )
+	squareSize	= cmds.intField ( "squareSize_intField"	, q=True, v  = True )
 
 	# set OptionVar
-	cmds.optionVar(sv=("SALPlayblastDir", currentPath))
+	cmds.optionVar(sv=("SALPlayblastDir", destPath))
+
+	if cmds.objExists("sphericalCamera_grp") and len(cmds.listRelatives("sphericalCamera_grp")):
+		cam_shapes = [cmds.listRelatives(camera)[0] for camera in cmds.listRelatives("sphericalCamera_grp")]
+	else:
+		print ( "Camera rig not found." )
+		cmds.confirmDialog(m = "Camera rig not found.")
+		return False
+
+	# Setup progressBar
+	gMainProgressBar = maya.mel.eval('$tmp = $gMainProgressBar');
+	cmds.progressBar( 	gMainProgressBar,
+						edit=True,
+						beginProgress=True,
+						isInterruptable=True,
+						status='Example Calculation ...',
+						maxValue=endFrame )
+
+	cmds.progressBar(gMainProgressBar, edit=True, step=1,status='Example Calculation ...')
+
+	# Setup viewport
+	cmds.modelEditor("modelPanel4", e=True, allObjects=False)
+	cmds.modelEditor("modelPanel4", e=True, polymeshes=True, pluginObjects = ["gpuCacheDisplayFilter",True])
+
+	# Playblast
+	for frame in range(startFrame, endFrame+1):
+
+		print( "_________________" )
+		print( "Frame : %s/%s" %(frame, endFrame) )
+
+		for camera in cam_shapes:
+
+			tmp_filename = _getTempImgNameFromCamera(cameraname = camera)
+
+			cmds.lookThru (camera)
+			cmds.refresh()
+
+			cmds.playblast(	format 		= "image",
+							frame 		= frame,
+							wh 			= (squareSize,squareSize),
+							percent 	= 100,
+							quality 	= 100,
+							completeFilename 	= destPath + '/' + tmp_filename,
+							compression = "jpg",
+							v= False)
+
+		# Combine image
+		out_filename = filename.replace("####", "%04d"%frame)
+		result = core.createSpherical( 	left 		= destPath + '/' + "tmp_left.jpg",
+										front 		= destPath + '/' + "tmp_front.jpg",
+										right 		= destPath + '/' + "tmp_right.jpg",
+										back 		= destPath + '/' + "tmp_back.jpg",
+										top 		= destPath + '/' + "tmp_up.jpg",
+										bottom 		= destPath + '/' + "tmp_down.jpg",
+										in_widht  	= squareSize, 
+										in_height 	= squareSize, 
+										output_path = destPath + '/' + out_filename )
+
+		# Remove temp file
+		tmp_files = [	destPath + '/' + "tmp_left.jpg",
+						destPath + '/' + "tmp_front.jpg",
+						destPath + '/' + "tmp_right.jpg",
+						destPath + '/' + "tmp_back.jpg",
+						destPath + '/' + "tmp_up.jpg",
+						destPath + '/' + "tmp_down.jpg" ]
+
+		_deleteTempFiles(tmp_files)
+
+		if cmds.progressBar(gMainProgressBar, query=True, isCancelled=True ) or not result  :
+			# Set viewport back
+			cmds.modelEditor("modelPanel4", e=True, allObjects=True)
+			_deleteTempFiles(tmp_files)
+			cmds.progressBar(gMainProgressBar, edit=True, endProgress=True)
+			return
+
+		cmds.progressBar(gMainProgressBar, edit=True, step=1)
+
+	# Set viewport back
+	cmds.modelEditor("modelPanel4", e=True, allObjects=True)
+	cmds.progressBar(gMainProgressBar, edit=True, endProgress=True)
+
+def _deleteTempFiles(tempFiles):
+	'''Delete temp files'''
+	for file in tempFiles :
+		if os.path.exists(file) :
+			os.remove(file)
 
 def _setDestDir(*args):
 	'''set Destination folder'''
@@ -59,17 +146,28 @@ def _setDestDir(*args):
 
 	cmds.textField("destDir_textField", e=True, tx = playBlastDir[0])
 
-def _playblast(camera, start, stop, outputPath, fileName):
-	'''
-	Playblast
-	From : playblast  -format image -filename "playblast" -sequenceTime 0 -clearCache 1 -viewer 1 -showOrnaments 1 -fp 4 -percent 50 -compression "jpg" -quality 80;
-	'''
 
-	cmds.playBlast(	format = "image",
-					fp = 4,
-					percent = 100,
-					quality = 100,
-					compression = "jpg")
+def _getTempImgNameFromCamera( cameraname ):
+	''' Generate image temp name from camera name '''
+
+	if "cam_left" in cameraname :
+		return "tmp_left.jpg"
+
+	elif "cam_front" in cameraname :
+		return "tmp_front.jpg"
+
+	elif "cam_right" in cameraname :
+		return "tmp_right.jpg"
+
+	elif "cam_back" in cameraname :
+		return "tmp_back.jpg"
+
+	elif "cam_up" in cameraname :
+		return "tmp_up.jpg"
+
+	elif "cam_down" in cameraname :
+		return "tmp_down.jpg"
+
 
 def showUI():
 	'''show main window'''
@@ -119,12 +217,12 @@ def showUI():
 
 	cmds.rowLayout(nc=2)
 	cmds.text("Square size : ")
-	cmds.intField(v=960)
+	cmds.intField("squareSize_intField",v=960)
 	cmds.setParent("..")
 
 	cmds.separator(h=10)
 
-	cmds.button(l="Render playblast", h=40)
+	cmds.button(l="Render playblast", h=40, c= _renderVR)
 	cmds.setParent("..")
 
 	cmds.columnLayout(adj=True)

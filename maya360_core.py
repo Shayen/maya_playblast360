@@ -171,7 +171,10 @@ def createSpherical( left, front, right, back, top, bottom, in_widht, in_height,
 
 		# Check file exists
 		if not os.path.exists(imageFile):
-			break
+			print ("Path not found : %s"%imageFile)
+			cmds.confirmDialog(m="Path not found : %s"%imageFile)
+			# cmds.error ("Path not found : %s"%imageFile)
+			return False
 
 		print ("\t- " + imageFile)
 
@@ -252,11 +255,12 @@ def createSpherical( left, front, right, back, top, bottom, in_widht, in_height,
 
 		percent = round((float(y)/float(h))*100, 2)
 		if percent % 1 == 0 :
-			print ("Percent : %.2f/100"%(percent))
+			print ("\tPercent : %.2f/100"%(percent))
 			o_img.saveToFile(path = output_path )
 
-	print ("Percent : 100.00/100")
+	print ("\tPercent : 100.00/100")
 	o_img.saveToFile(path = output_path )
+	return output_path
 
 if __name__ == '__main__':
 	
