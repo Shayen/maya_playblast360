@@ -168,6 +168,3 @@ def find_corresponding_pixel(i, j, w, h, n):
     cube_coords 	= raw_coordinates(raw_face_coords[0], raw_face_coords[1], raw_face_coords[2])
 
     return normalized_coordinates(face, cube_coords[0], cube_coords[1], n)
-
-
-

@@ -174,7 +174,6 @@ def showUI():
 	clearUI()
 
 	# Get playblast path
-	# currentPath = cmds.getAttr("defaultRenderGlobals.imageFilePrefix")
 	if cmds.optionVar( exists = 'SALPlayblastDir' ) :
 		currentPath = cmds.optionVar( q = 'SALPlayblastDir' )
 	else :
