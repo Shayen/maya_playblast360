@@ -1,5 +1,6 @@
 import sys, os
 import maya.cmds as cmds
+import maya
 
 modulepath = os.path.dirname(__file__)
 if modulepath not in sys.path :
